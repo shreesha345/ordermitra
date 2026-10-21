@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Intova
 
-## Getting Started
+WhatsApp order desk for a pharmacy. Customers send an order as text, a voice note, a photo or a PDF. Gemini reads it, the app matches it against inventory, and the shop gets an order to confirm, with a GST invoice and a Razorpay/UPI payment link sent back over WhatsApp.
 
-First, run the development server:
+## Setup
 
 ```bash
+npm install
+cp .env.example .env   # then fill in the keys
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 (redirects to `/orders`). Data is stored in `data/intova.db` (SQLite, gitignored).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Without `GEMINI_API_KEY` only typed text orders work. Without Razorpay keys the Pay button sends a plain `upi://` link.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Receiving WhatsApp messages locally
 
-## Learn More
+Meta needs a public https URL. `npm run dev:tunnel` starts ngrok, runs `next dev` with `PUBLIC_BASE_URL` set to the tunnel, and prints the webhook URLs:
 
-To learn more about Next.js, take a look at the following resources:
+- WhatsApp: `<PUBLIC_BASE_URL>/api/whatsapp` (verify token = `WHATSAPP_VERIFY_TOKEN`)
+- Razorpay: `<PUBLIC_BASE_URL>/api/razorpay`, event `payment_link.paid`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+ngrok must be installed and signed in (`ngrok config add-authtoken ...`). Set `META_APP_ID` and `WHATSAPP_BUSINESS_ACCOUNT_ID` to have the webhook registered with Meta automatically.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Layout
 
-## Deploy on Vercel
+| Path | What it does |
+| --- | --- |
+| `src/app/orders`, `customers`, `inventory` | Dashboard pages |
+| `src/app/api/whatsapp` | Meta webhook (verification, signature check, dedupe) |
+| `src/app/api/razorpay` | Payment-paid webhook |
+| `src/app/api/orders/[id]` | Order actions and invoice PDF |
+| `src/app/api/inventory/import` | Spreadsheet inventory import |
+| `src/lib/orders.ts` | Incoming-message handling and order flow |
+| `src/lib/gemini.ts` | Order extraction from text, audio, images, PDFs |
+| `src/lib/invoice.ts` | Invoice PDF |
+| `src/lib/db.ts` | SQLite schema and access |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Production notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Set `WHATSAPP_APP_SECRET`; without it webhook signatures are not checked.
+- Use `rzp_test_` Razorpay keys until you have verified the flow end to end.
+- Store details on the invoice come from the `STORE_*` variables.

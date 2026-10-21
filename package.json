@@ -4,18 +4,22 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:tunnel": "node scripts/dev-tunnel.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@google/genai": "^2.30.0",
+    "exceljs": "^4.4.0",
     "next": "16.4.2",
+    "pdf-lib": "^1.17.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
