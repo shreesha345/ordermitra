@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
-import type { Media } from "./gemini";
+import type { Media } from "./ai";
 
-/** WhatsApp voice notes are OGG/Opus. Convert to a small mono MP3 for Gemini; set FFMPEG_PATH if ffmpeg is not on PATH. */
+/** WhatsApp voice notes are OGG/Opus. Convert to a small mono MP3 the AI models accept; set FFMPEG_PATH if ffmpeg is not on PATH. */
 export function toMp3(media: Media): Promise<Media> {
   if (media.mime === "audio/mpeg") return Promise.resolve(media);
   return new Promise((resolve) => {

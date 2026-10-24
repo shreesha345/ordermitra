@@ -1,6 +1,8 @@
 import { after, type NextRequest } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { handleIncoming, handlePayment } from "@/lib/orders";
+import { handleIncoming } from "@/lib/assistant";
+import { isLocal } from "@/lib/auth";
+import { handlePayment } from "@/lib/orders";
 import { downloadMedia } from "@/lib/whatsapp";
 
 type WaMessage = {
@@ -9,8 +11,8 @@ type WaMessage = {
   type: "text" | "audio" | "image" | "document" | "interactive" | "button";
   text?: { body: string };
   audio?: { id: string };
-  image?: { id: string };
-  document?: { id: string };
+  image?: { id: string; caption?: string; mime_type?: string };
+  document?: { id: string; caption?: string; filename?: string; mime_type?: string };
   interactive?: { button_reply?: { id: string; title: string }; list_reply?: { id: string; title: string } };
 };
 type WaStatus = {
@@ -38,9 +40,9 @@ export function GET(req: NextRequest) {
   return new Response("Forbidden", { status: 403 });
 }
 
-function validSignature(raw: string, header: string | null) {
+function validSignature(raw: string, header: string | null, headers: Headers) {
   const secret = process.env.WHATSAPP_APP_SECRET;
-  if (!secret) return true; // not configured: accept (fine locally, set it in production)
+  if (!secret) return isLocal(headers); // not configured: only accept messages made on this computer, never from outside
   const expected = "sha256=" + createHmac("sha256", secret).update(raw).digest("hex");
   const a = Buffer.from(expected);
   const b = Buffer.from(header ?? "");
@@ -49,7 +51,7 @@ function validSignature(raw: string, header: string | null) {
 
 export async function POST(req: NextRequest) {
   const raw = await req.text();
-  if (!validSignature(raw, req.headers.get("x-hub-signature-256"))) return new Response("Bad signature", { status: 401 });
+  if (!validSignature(raw, req.headers.get("x-hub-signature-256"), req.headers)) return new Response("Bad signature", { status: 401 });
   const body = JSON.parse(raw) as Payload;
 
   // Reply 200 straight away; transcription and replies run after the response.
@@ -74,14 +76,17 @@ export async function POST(req: NextRequest) {
           seen.add(m.id);
           try {
             const mediaId = m.audio?.id ?? m.image?.id ?? m.document?.id;
+            // A photo or file can carry a caption ("urgent", "same as last week"), and a document has a file name.
+            const caption = m.image?.caption ?? m.document?.caption;
+            const filename = m.document?.filename;
             const reply = m.interactive?.button_reply ?? m.interactive?.list_reply;
             await handleIncoming({
               phone: m.from,
               name: names.get(m.from),
               kind: reply ? "button" : m.type === "interactive" || m.type === "button" ? "text" : (m.type as "text"),
-              text: reply?.title ?? m.text?.body,
+              text: reply?.title ?? m.text?.body ?? caption,
               buttonId: reply?.id,
-              media: mediaId ? () => downloadMedia(mediaId) : undefined,
+              media: mediaId ? async () => ({ ...(await downloadMedia(mediaId)), name: filename }) : undefined,
             });
           } catch (e) {
             console.error("webhook message failed", m.id, e);

@@ -3,28 +3,37 @@
 :root {
   --bg: #f6f7f9;
   --surface: #ffffff;
-  --border: #e3e6ea;
-  --text: #14181f;
-  --muted: #5f6b7a;
-  --primary: #1b6ef3;
-  --primary-soft: #e8f0fe;
-  --success: #12a150;
-  --success-soft: #e3f6ea;
-  --warn: #b7791f;
-  --warn-soft: #fdf1dc;
-  --danger: #c93b3b;
-  --danger-soft: #fce8e8;
+  --subtle: #f1f3f6;
+  --border: #e4e7ec;
+  --text: #101828;
+  --muted: #5d6b7e;
+  --faint: #8a96a6;
+  --primary: #1f5fd6;
+  --primary-hover: #194fb4;
+  --primary-soft: #eaf1fd;
+  --success: #12804a;
+  --success-soft: #e4f5ec;
+  --warn: #a35f00;
+  --warn-soft: #fdf2df;
+  --danger: #c0362c;
+  --danger-soft: #fdebea;
   --wa: #25d366;
+  --wa-dark: #075e54;
   --wa-soft: #e5f7ec;
+  --wa-chat: #efeae2;
+  --wa-out: #d9fdd3;
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
   --color-line: var(--border);
   --color-ink: var(--text);
   --color-muted: var(--muted);
+  --color-faint: var(--faint);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-soft: var(--primary-soft);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
@@ -33,7 +42,10 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-wa: var(--wa);
+  --color-wa-dark: var(--wa-dark);
   --color-wa-soft: var(--wa-soft);
+  --color-wa-chat: var(--wa-chat);
+  --color-wa-out: var(--wa-out);
   --font-sans: var(--font-geist-sans), "Noto Sans Kannada", "Noto Sans Devanagari", "Noto Sans Tamil", "Noto Sans Telugu", system-ui, sans-serif;
 }
 
@@ -41,4 +53,24 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers line up in tables and stat tiles */
+table,
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }

@@ -1,12 +1,12 @@
 import type { NextRequest } from "next/server";
-import { commit } from "@/lib/orders";
+import { markPaid } from "@/lib/orders";
 import { validRazorpaySignature } from "@/lib/razorpay";
 
 type Event = {
   event: string;
   payload?: {
     payment_link?: { entity?: { notes?: { order_id?: string } } };
-    payment?: { entity?: { id?: string } };
+    payment?: { entity?: { id?: string; amount?: number } };
   };
 };
 
@@ -17,7 +17,9 @@ export async function POST(req: NextRequest) {
   const ev = JSON.parse(raw) as Event;
   if (ev.event === "payment_link.paid") {
     const orderId = Number(ev.payload?.payment_link?.entity?.notes?.order_id);
-    if (orderId) await commit(orderId, "upi", ev.payload?.payment?.entity?.id ?? null); // no-op if already paid
+    const paise = ev.payload?.payment?.entity?.amount;
+    // The link was made for the discounted price of its day; record exactly what was paid. No-op if already paid.
+    if (orderId) await markPaid(orderId, ev.payload?.payment?.entity?.id ?? null, paise ? paise / 100 : undefined);
   }
   return new Response("ok", { status: 200 });
 }

@@ -1,25 +1,32 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { invoiceNo } from "./billing";
+import { storeName } from "./brand";
 
 export const razorpayLive = () => !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
 
 type PaymentLink = { id: string; short_url: string };
 
-/** Creates a Razorpay Payment Link (UPI, cards, netbanking) for one order. Amount is in rupees. */
-export async function createPaymentLink(o: { id: number; total: number; phone: string; name?: string | null }): Promise<PaymentLink> {
+/**
+ * Creates a Razorpay Payment Link (UPI, cards, netbanking) for one bill. Amount is in rupees: the price for
+ * today, after any prompt-payment discount, so the link expires when that offer does (24 h otherwise).
+ */
+export async function createPaymentLink(o: { id: number; invoice_no?: string | null; amount: number; phone: string; name?: string | null; expireAt?: number | null }): Promise<PaymentLink> {
+  // Razorpay needs at least 15 minutes, and a discounted link must not outlive its discount.
+  const expire = Math.max(Date.now() + 16 * 60_000, Math.min(o.expireAt ?? Infinity, Date.now() + 24 * 3_600_000));
   const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString("base64");
   const res = await fetch("https://api.razorpay.com/v1/payment_links", {
     method: "POST",
     headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      amount: Math.round(o.total * 100),
+      amount: Math.round(o.amount * 100),
       currency: "INR",
       accept_partial: false,
       reference_id: `order-${o.id}-${Date.now()}`,
-      description: `${process.env.STORE_NAME ?? "Sri Ram Medicals"} order #${o.id}`,
+      description: `${storeName()} ${invoiceNo(o)}`,
       customer: { name: o.name ?? undefined, contact: `+${o.phone}` },
       notify: { sms: false, email: false },
       notes: { order_id: String(o.id) },
-      expire_by: Math.floor(Date.now() / 1000) + 24 * 3600,
+      expire_by: Math.floor(expire / 1000),
     }),
   });
   if (!res.ok) throw new Error(`Razorpay ${res.status}: ${await res.text()}`);

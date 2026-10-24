@@ -43,3 +43,6 @@ next-env.d.ts
 # local data
 /data/
 !.env.example
+
+# demo-video workspace (large media, rendered locally)
+/video/

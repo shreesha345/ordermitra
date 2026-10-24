@@ -1,13 +1,18 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { invoiceNo } from "./billing";
 import { db } from "./db";
-import type { Media } from "./gemini";
+import type { Media } from "./ai";
 
 const GRAPH = `https://graph.facebook.com/${process.env.WHATSAPP_API_VERSION ?? "v21.0"}`;
 
 export type Button = { id: string; title: string };
 
 export const whatsappLive = () => !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
+
+/** Retailers created by the dashboard simulator and demo data. Indian mobiles never start with 0, so these are never real. */
+export const SIM_PREFIX = "910000";
+const live = (phone: string) => whatsappLive() && !phone.startsWith(SIM_PREFIX);
 
 function log(phone: string, direction: "in" | "out", kind: string, body: string, buttons?: Button[], docUrl?: string) {
   db()
@@ -30,17 +35,35 @@ async function post(payload: object) {
 // WhatsApp allows at most 3 reply buttons, each title up to 20 characters.
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
+/** Splits a long message at line breaks (or spaces) into parts of at most `max` characters. */
+function splitAt(body: string, max: number) {
+  const parts: string[] = [];
+  let rest = body;
+  while (rest.length > max) {
+    const cut = Math.max(rest.lastIndexOf("\n", max), rest.lastIndexOf(" ", max));
+    const at = cut > max / 2 ? cut : max;
+    parts.push(rest.slice(0, at).trimEnd());
+    rest = rest.slice(at).trimStart();
+  }
+  return [...parts, rest];
+}
+
 /** Text, optionally with up to 3 quick-reply buttons. Always recorded so the dashboard can show the chat. */
 export async function sendText(phone: string, body: string, buttons?: Button[]) {
   log(phone, "out", buttons?.length ? "buttons" : "text", body, buttons);
-  if (!whatsappLive()) return;
-  if (!buttons?.length) return post({ to: phone, type: "text", text: { body } });
+  if (!live(phone)) return;
+  // WhatsApp cuts text at 4096 characters and a message with buttons at 1024. Rather than lose the end of a
+  // long list, send it in parts at line breaks, and put the buttons on a short last message.
+  const parts = splitAt(body, buttons?.length ? 1024 : 4096);
+  for (const part of parts.slice(0, -1)) await post({ to: phone, type: "text", text: { body: part } });
+  const last = parts[parts.length - 1];
+  if (!buttons?.length) return post({ to: phone, type: "text", text: { body: last } });
   await post({
     to: phone,
     type: "interactive",
     interactive: {
       type: "button",
-      body: { text: body.slice(0, 1024) },
+      body: { text: last },
       action: { buttons: buttons.slice(0, 3).map((b) => ({ type: "reply", reply: { id: b.id, title: clip(b.title, 20) } })) },
     },
   });
@@ -57,7 +80,7 @@ export async function sendLanguageCard(phone: string) {
   ];
   const body = "Welcome! Please choose your language.\nनमस्ते! अपनी भाषा चुनें।\nಸ್ವಾಗತ! ನಿಮ್ಮ ಭಾಷೆ ಆರಿಸಿ.\nவரவேற்கிறோம்! உங்கள் மொழியைத் தேர்ந்தெடுக்கவும்.\nస్వాగతం! మీ భాషను ఎంచుకోండి.";
   log(phone, "out", "buttons", body, rows);
-  if (!whatsappLive()) return;
+  if (!live(phone)) return;
   await post({
     to: phone,
     type: "interactive",
@@ -79,10 +102,11 @@ export const nativePaymentsOn = () => !!process.env.WHATSAPP_PAYMENT_CONFIG;
  */
 export async function sendPaymentCard(
   phone: string,
-  order: { id: number; gst: number },
+  order: { id: number; gst: number; invoice_no?: string | null },
   lines: { item_id: number | null; name: string; unit_price: number; qty_confirmed: number }[],
   body: string,
   footer: string,
+  price: { discount: number; until: number | null },
 ) {
   const paise = (n: number) => Math.round(n * 100);
   const items = lines.map((l) => ({
@@ -93,6 +117,8 @@ export async function sendPaymentCard(
   }));
   const subtotal = items.reduce((s, i) => s + i.amount.value * i.quantity, 0);
   const tax = paise(order.gst);
+  // Prompt-payment discount for today; Meta requires total = subtotal + tax - discount.
+  const discount = paise(price.discount);
   const parameters = {
     reference_id: `ord${order.id}-${Date.now().toString(36)}`, // unique per card; the order id is read back from it
     type: "physical-goods",
@@ -102,22 +128,25 @@ export async function sendPaymentCard(
         payment_gateway: {
           type: "razorpay",
           configuration_name: process.env.WHATSAPP_PAYMENT_CONFIG,
-          razorpay: { receipt: `INV-${order.id}`, notes: { order_id: String(order.id) } },
+          razorpay: { receipt: invoiceNo(order), notes: { order_id: String(order.id) } },
         },
       },
     ],
     currency: "INR",
-    total_amount: { value: subtotal + tax, offset: 100 },
+    total_amount: { value: subtotal + tax - discount, offset: 100 },
     order: {
       status: "pending",
       ...(process.env.WHATSAPP_CATALOG_ID ? { catalog_id: process.env.WHATSAPP_CATALOG_ID } : {}),
       items,
       subtotal: { value: subtotal, offset: 100 },
-      tax: { value: tax, offset: 100, description: "GST 5%" },
+      tax: { value: tax, offset: 100, description: "GST" },
+      ...(discount ? { discount: { value: discount, offset: 100, description: "Pay-now discount" } } : {}),
+      // The discounted card stops working when the offer ends; the retailer taps Pay again for the new price.
+      ...(price.until ? { expiration: { timestamp: String(Math.floor(Math.max(price.until, Date.now() + 10 * 60_000) / 1000)), description: "Pay-now price ends" } } : {}),
     },
   };
   log(phone, "out", "text", `${body}\n💳 ₹${((subtotal + tax) / 100).toFixed(2)}`);
-  if (!whatsappLive()) return true;
+  if (!live(phone)) return true;
   // Meta's docs show `parameters` both as an object and as a JSON string, so try the object first, then the string.
   for (const p of [parameters, JSON.stringify(parameters)]) {
     const ok = await post({
@@ -138,7 +167,7 @@ export async function sendPaymentCard(
 /** Sends a PDF. The file is served from our own invoice route so Meta can fetch it. */
 export async function sendDocument(phone: string, docUrl: string, filename: string, caption: string) {
   log(phone, "out", "document", caption, undefined, docUrl);
-  if (!whatsappLive()) return;
+  if (!live(phone)) return;
   const base = process.env.PUBLIC_BASE_URL;
   if (!base) return console.error("PUBLIC_BASE_URL is not set, so Meta cannot fetch the invoice PDF.");
   await post({ to: phone, type: "document", document: { link: base + docUrl, filename, caption } });
