@@ -2,6 +2,10 @@
 
 WhatsApp order desk for a pharmaceutical wholesaler. Retail pharmacies message it the way they already do: text, a voice note, a photo of a list, a PDF or an Excel sheet, in English, Hindi, Kannada, Tamil or Telugu. An AI agent reads it, checks stock, credit and the retailer's drug licence, and sends back a GST invoice with a pay-now discount. The wholesaler's team only reviews and dispatches.
 
+## Built with Nebius and NVIDIA
+
+The AI agent runs on **NVIDIA Nemotron 3 Nano Omni** (`nvidia/nemotron-3-nano-omni`), served by **Nebius Token Factory** through its OpenAI-compatible API (`https://api.tokenfactory.nebius.com/v1`). It is the default provider (`AI_PROVIDER=nemotron`), and one multimodal model reads typed messages, voice notes and photos of order lists, then calls tools to check stock, credit and licences. See [AI models](#ai-models) and `src/lib/ai.ts`.
+
 ## Setup
 
 ```bash
