@@ -103,7 +103,7 @@ The dashboard is in English, Hindi, Kannada, Tamil or Telugu (picker in the side
 `AI_PROVIDER=default` or `nemotron`. Without it, whichever has a key is used, the default model first.
 
 - **Default model** (`AI_API_KEY` from Google AI Studio, `AI_MODEL` from its model list) reads text, voice notes, photos and PDFs natively.
-- **Nemotron** (`NEMOTRON_API_KEY`, `NEMOTRON_BASE_URL`, `NEMOTRON_MODEL`) runs through any OpenAI-compatible endpoint: Nebius Token Factory (default), NVIDIA's API or a self-hosted NIM. Voice notes need `NEMOTRON_AUDIO_MODEL` (an audio-capable Nemotron model, sent as OpenAI `input_audio`) and photos need `NEMOTRON_VISION_MODEL`; PDFs are read by the default model when its key is also set. Check the exact model id in your provider's model list.
+- **Nemotron** (`NEMOTRON_API_KEY`, `NEMOTRON_BASE_URL`, `NEMOTRON_MODEL`) runs through any OpenAI-compatible endpoint: Nebius Token Factory (default), NVIDIA's API or a self-hosted NIM. The default model, `nvidia/nemotron-3-nano-omni`, is multimodal, so voice notes (sent as OpenAI `input_audio`) and photos work out of the box; override with `NEMOTRON_AUDIO_MODEL` / `NEMOTRON_VISION_MODEL`, or set `NEMOTRON_TEXT_ONLY=1` for a text-only model; PDFs are read by the default model when its key is also set. Check the exact model id in your provider's model list.
 
 The model only reads and decides what to do; prices, stock, GST, discounts and the credit decision are always computed by the app.
 
@@ -153,3 +153,7 @@ ngrok must be installed and signed in (`ngrok config add-authtoken ...`). Set `M
 - Use `rzp_test_` Razorpay keys until you have verified the flow end to end.
 - WhatsApp only allows free-form messages within 24 hours of the retailer's last message. Dues and restock reminders to retailers who have not written recently need an approved message template.
 - Check the GST rate and HSN of each product; the default is 5% / 3004.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).

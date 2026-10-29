@@ -38,7 +38,7 @@ export function integrations(): Integration[] {
   const wa = keys(["WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_VERIFY_TOKEN"], ["WHATSAPP_APP_SECRET", "PUBLIC_BASE_URL"]);
   const waPay = keys(["WHATSAPP_PAYMENT_CONFIG"], ["WHATSAPP_CATALOG_ID"]);
   // Either model runs the assistant, so no key is required on its own
-  const model = keys([], ["AI_API_KEY", "AI_MODEL", "AI_THINKING", "NEMOTRON_API_KEY", "NEMOTRON_MODEL", "NEMOTRON_AUDIO_MODEL", "NEMOTRON_VISION_MODEL", "NEMOTRON_BASE_URL", "AI_PROVIDER"]);
+  const model = keys([], ["AI_API_KEY", "AI_MODEL", "AI_THINKING", "NEMOTRON_API_KEY", "NEMOTRON_MODEL", "NEMOTRON_AUDIO_MODEL", "NEMOTRON_VISION_MODEL", "NEMOTRON_BASE_URL", "NEMOTRON_TEXT_ONLY", "AI_PROVIDER"]);
   const tavily = keys(["TAVILY_API_KEY"]);
   const active = aiProvider()?.id;
   const rzp = keys(["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET"], ["RAZORPAY_WEBHOOK_SECRET"]);
