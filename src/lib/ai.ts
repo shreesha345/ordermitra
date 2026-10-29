@@ -93,11 +93,13 @@ type OaMessage =
 
 function nemotron(): AiProvider {
   const base = (process.env.NEMOTRON_BASE_URL || "https://api.tokenfactory.nebius.com/v1").replace(/\/$/, "");
-  const model = process.env.NEMOTRON_MODEL || "nvidia/Llama-3_3-Nemotron-Super-49B-v1_5";
-  // Text-only Nemotron models cannot see images; a vision model (e.g. Nemotron Nano VL) reads them when it is set.
-  const vision = process.env.NEMOTRON_VISION_MODEL?.trim();
-  // Voice notes go to an audio-capable model (e.g. a Nemotron omni model) as OpenAI "input_audio" parts.
-  const audio = process.env.NEMOTRON_AUDIO_MODEL?.trim();
+  const model = process.env.NEMOTRON_MODEL || "nvidia/nemotron-3-nano-omni";
+  // The default model is multimodal (Nemotron 3 Nano Omni: text, images and voice). If NEMOTRON_MODEL is a
+  // text-only model, set these to route photos and voice notes to a vision / audio-capable model instead.
+  const textOnly = process.env.NEMOTRON_TEXT_ONLY === "1";
+  const vision = process.env.NEMOTRON_VISION_MODEL?.trim() || (textOnly ? undefined : model);
+  // Voice notes go to the audio-capable model as OpenAI "input_audio" parts.
+  const audio = process.env.NEMOTRON_AUDIO_MODEL?.trim() || (textOnly ? undefined : model);
   const toMessages = (system: string, messages: AiMessage[]): OaMessage[] => [
     // Nemotron reasons step by step unless told not to; that is slow for chat replies, so it is off unless asked for.
     { role: "system", content: `${process.env.NEMOTRON_THINKING === "1" ? "" : "/no_think\n"}${system}` },
