@@ -3,7 +3,7 @@ import { GoogleGenAI, type Content, type Part, type ThinkingLevel } from "@googl
 // One interface over the AI models, so the assistant runs the same way on the default model (Google AI Studio,
 // set with AI_API_KEY and AI_MODEL) or on NVIDIA Nemotron through any OpenAI-compatible endpoint (Nebius Token
 // Factory, NVIDIA's own API, a self-hosted NIM). Pick with AI_PROVIDER=default|nemotron; without it, whichever
-// has a key is used, the default model first.
+// has a key is used, Nebius Token Factory (nemotron) first.
 
 /** A file the retailer sent. `name` is the file name, when WhatsApp gives one (documents). */
 export type Media = { mime: string; data: Buffer; name?: string };
@@ -172,8 +172,8 @@ export function aiProvider(): AiProvider | null {
   const want = process.env.AI_PROVIDER?.trim().toLowerCase();
   if (want === "nemotron") return has("NEMOTRON_API_KEY") ? nemotron() : null;
   if (want === "default") return defaultReady() ? defaultModel() : null;
-  if (defaultReady()) return defaultModel();
   if (has("NEMOTRON_API_KEY")) return nemotron();
+  if (defaultReady()) return defaultModel();
   return null;
 }
 

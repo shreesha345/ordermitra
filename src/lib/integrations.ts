@@ -76,10 +76,10 @@ export function integrations(): Integration[] {
       category: "AI",
       status: active ? "connected" : has("AI_API_KEY") || has("NEMOTRON_API_KEY") ? "partial" : "off",
       note: active === "nemotron"
-        ? `NVIDIA Nemotron (OpenAI-compatible API) · ${process.env.NEMOTRON_MODEL || "nvidia/Llama-3_3-Nemotron-Super-49B-v1_5"}${has("NEMOTRON_AUDIO_MODEL") ? "" : " · voice notes need NEMOTRON_AUDIO_MODEL"}`
+        ? `Nebius Token Factory (OpenAI-compatible API) · ${process.env.NEMOTRON_MODEL || "nvidia/nemotron-3-nano-omni"}`
         : active === "default"
-          ? `Model ${process.env.AI_MODEL}${has("NEMOTRON_API_KEY") ? " · set AI_PROVIDER=nemotron to run on NVIDIA Nemotron instead" : ""}`
-          : "Set AI_API_KEY and AI_MODEL, or NEMOTRON_API_KEY for NVIDIA Nemotron. Without either, only typed orders work, matched by keywords.",
+          ? `Model ${process.env.AI_MODEL}${has("NEMOTRON_API_KEY") ? " · set AI_PROVIDER=nemotron to run on Nebius Token Factory instead" : ""}`
+          : "Set NEMOTRON_API_KEY (Nebius Token Factory), or AI_API_KEY and AI_MODEL. Without either, only typed orders work, matched by keywords.",
       usedFor: "Understands orders, questions, returns and licences in any language",
       access: [
         "Receives the retailer's message, voice note, photo, PDF or sheet, recent chat, their dues summary and your product list",

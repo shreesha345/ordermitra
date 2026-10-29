@@ -100,7 +100,7 @@ The dashboard is in English, Hindi, Kannada, Tamil or Telugu (picker in the side
 
 ## AI models
 
-`AI_PROVIDER=default` or `nemotron`. Without it, whichever has a key is used, the default model first.
+`AI_PROVIDER=default` or `nemotron`. Without it, whichever has a key is used, Nebius Token Factory first (`.env.example` sets `nemotron`).
 
 - **Default model** (`AI_API_KEY` from Google AI Studio, `AI_MODEL` from its model list) reads text, voice notes, photos and PDFs natively.
 - **Nemotron** (`NEMOTRON_API_KEY`, `NEMOTRON_BASE_URL`, `NEMOTRON_MODEL`) runs through any OpenAI-compatible endpoint: Nebius Token Factory (default), NVIDIA's API or a self-hosted NIM. The default model, `nvidia/nemotron-3-nano-omni`, is multimodal, so voice notes (sent as OpenAI `input_audio`) and photos work out of the box; override with `NEMOTRON_AUDIO_MODEL` / `NEMOTRON_VISION_MODEL`, or set `NEMOTRON_TEXT_ONLY=1` for a text-only model; PDFs are read by the default model when its key is also set. Check the exact model id in your provider's model list.
