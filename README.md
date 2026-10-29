@@ -111,6 +111,17 @@ The model only reads and decides what to do; prices, stock, GST, discounts and t
 
 The simulator works without any WhatsApp setup. To fill the dashboard with six sample pharmacies (a fast payer, a slow payer with an overdue bill, one in Kerala for IGST, one without a licence) and two weeks of orders, click **Load demo data** on an empty store, or set `DEMO_MODE=1` to allow **Reset demo data** at any time (it wipes all data). Simulator and demo numbers start with `910000`, which no real Indian mobile does, so nothing is ever sent to WhatsApp for them.
 
+### Why there is no public live demo
+
+A hosted demo that anyone can message on WhatsApp is not possible with Meta's WhatsApp Cloud API, so the demo runs in the built-in simulator instead:
+
+- **Test numbers only reach a few people.** Before a WhatsApp Business account is verified, the API sends from a test number and only to a short list of recipients (at most 5) that the account owner has added and confirmed by hand. A stranger cannot message or receive from it.
+- **Going public needs Meta's approval.** Messaging arbitrary users needs a verified Meta Business, a registered phone number with an approved display name, and app review for the permissions used. A project demo does not have these.
+- **Outbound messages are restricted.** Outside the 24-hour window after a customer's last message, only pre-approved message templates can be sent. The bills, payment links and reminders this app sends would each need an approved template.
+- **Each deployment is tied to one account.** The webhook, token and phone number belong to a single Meta app and need a public HTTPS URL, so a shared demo would send every visitor's messages through the owner's business number and its rate limits and billing.
+
+Use the simulator at `/simulator` (and the demo data above) to try the whole flow without Meta, or connect your own WhatsApp Business account to run it for real.
+
 ## White-labelling
 
 - `APP_NAME`: product name in the sidebar, browser tab and invoice footer (default `OrderMitra`)
